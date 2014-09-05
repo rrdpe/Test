@@ -5,3 +5,10 @@ C:\Users\Roberto.Rizky\Documents\Visual Studio 2010\Projects\VirtualComTest\Virt
 C:\Users\Roberto.Rizky\Documents\Visual Studio 2010\Projects\VirtualComTest\VirtualComTest\obj\x86\Debug\VirtualComTest.csproj.GenerateResource.Cache
 C:\Users\Roberto.Rizky\Documents\Visual Studio 2010\Projects\VirtualComTest\VirtualComTest\obj\x86\Debug\VirtualComTest.exe
 C:\Users\Roberto.Rizky\Documents\Visual Studio 2010\Projects\VirtualComTest\VirtualComTest\obj\x86\Debug\VirtualComTest.pdb
+C:\Users\Roberto.Rizky\Documents\GitHub\Test\VirtualComTest\VirtualComTest\obj\x86\Debug\VirtualComTest.exe
+C:\Users\Roberto.Rizky\Documents\GitHub\Test\VirtualComTest\VirtualComTest\obj\x86\Debug\VirtualComTest.pdb
+C:\Users\Roberto.Rizky\Documents\GitHub\Test\VirtualComTest\VirtualComTest\bin\Debug\VirtualComTest.exe
+C:\Users\Roberto.Rizky\Documents\GitHub\Test\VirtualComTest\VirtualComTest\bin\Debug\VirtualComTest.pdb
+C:\Users\Roberto.Rizky\Documents\GitHub\Test\VirtualComTest\VirtualComTest\obj\x86\Debug\VirtualComTest.MainForm.resources
+C:\Users\Roberto.Rizky\Documents\GitHub\Test\VirtualComTest\VirtualComTest\obj\x86\Debug\VirtualComTest.Properties.Resources.resources
+C:\Users\Roberto.Rizky\Documents\GitHub\Test\VirtualComTest\VirtualComTest\obj\x86\Debug\VirtualComTest.csproj.GenerateResource.Cache

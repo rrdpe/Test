@@ -31,51 +31,67 @@ namespace VirtualComTest
       Write = 1
     }
 
-    private SerialPort serialPort = new SerialPort();
+    private SerialPort serialPortPC = new SerialPort();
+    private SerialPort serialPortEmbedded = new SerialPort();
     private int bytesToWrite;
     private int totalBytesToRead;
     private int bytesRead;
 
-    private Status status;
+    private Status statusPC;
+    private Status statusEmbedded;
     private CommandType commandType;
     private byte[] data;
 
     public MainForm()
     {
       InitializeComponent();
-      status = Status.Disconnected;
+      statusPC = Status.Disconnected;
+      statusEmbedded = Status.Disconnected;
     }
 
     private void MainForm_Load(object sender, EventArgs e)
     {
       object[] ports = SerialPort.GetPortNames();
-      this.COMPortComboBox.Items.AddRange(ports);
-      this.COMPortComboBox.SelectedIndex = 0;
+      this.COMPortComboBoxPC.Items.AddRange(ports);
+      this.COMPortComboBoxPC.SelectedIndex = 0;
+      this.COMPortComboBoxEmbedded.Items.AddRange(ports);
+      this.COMPortComboBoxEmbedded.SelectedIndex = 0;
     }
 
     private void connectButton_Click(object sender, EventArgs e)
     {
-      serialPort.BaudRate = Convert.ToInt32(this.baudRateTextBox.Text);
-      serialPort.PortName = this.COMPortComboBox.SelectedItem.ToString();
-      serialPort.DataReceived += new SerialDataReceivedEventHandler(serialPort_DataReceived);
+      serialPortPC.BaudRate = Convert.ToInt32(this.baudRateTextBoxPC.Text);
+      serialPortPC.PortName = this.COMPortComboBoxPC.SelectedItem.ToString();
+      serialPortEmbedded.BaudRate = Convert.ToInt32(this.baudRateTextBoxEmbedded.Text);
+      serialPortEmbedded.PortName = this.COMPortComboBoxEmbedded.SelectedItem.ToString();
 
-      if (serialPort.PortName == "COM6")
+      serialPortPC.DataReceived += new SerialDataReceivedEventHandler(serialPortPC_DataReceived);
+      serialPortEmbedded.DataReceived += new SerialDataReceivedEventHandler(serialPortEmbedded_DataReceived);
+
+      if (serialPortPC.PortName == "COM6" && serialPortEmbedded.PortName == "COM7")
       {
-        status = Status.Connected;
+        statusPC = Status.Connected;
+        statusEmbedded = Status.Connected;
       }
 
-      if (status == Status.Connected)
+      if (statusPC == Status.Connected && statusEmbedded == Status.Connected)
       {
         try
         {
-          serialPort.Open();
-          if (serialPort.IsOpen)
+          serialPortPC.Open();
+          serialPortEmbedded.Open();
+
+          data = new byte[1];
+          data[0] = 13;
+          serialPortPC.Write(data, 0, data.Length);
+          if (serialPortPC.IsOpen && serialPortEmbedded.IsOpen)
           {
-            status = Status.Opened;
-            this.COMPortLabel.Enabled = false;
-            this.COMPortComboBox.Enabled = false;
-            this.baudRateLabel.Enabled = false;
-            this.baudRateTextBox.Enabled = false;
+            statusPC = Status.Opened;
+            statusEmbedded = Status.Opened;
+            this.COMPortLabelPC.Enabled = false;
+            this.COMPortComboBoxPC.Enabled = false;
+            this.baudRateLabelPC.Enabled = false;
+            this.baudRateTextBoxPC.Enabled = false;
             this.connectButton.Enabled = false;
           }
         }
@@ -90,62 +106,120 @@ namespace VirtualComTest
       }
     }
 
-    private void serialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+    private void serialPortPC_DataReceived(object sender, SerialDataReceivedEventArgs e)
     {
-      switch (status)
+      switch (statusPC)
       {
           case Status.Opened:
-            if (serialPort.ReadLine() == "OK\r")
+            if (serialPortPC.ReadLine() == "OK\r")
             {
-              status = Status.Alive;
+              statusPC = Status.Alive;
               if (commandType == CommandType.Write)
               {
-                serialPort.WriteLine("W:" + bytesToWrite.ToString(CultureInfo.InvariantCulture));
-                status = Status.Writing;
+                serialPortPC.WriteLine("W:" + bytesToWrite.ToString(CultureInfo.InvariantCulture));
+                statusPC = Status.Writing;
               }
               else
               {
-                serialPort.WriteLine("R");
-                status = Status.Reading;
+                serialPortPC.WriteLine("R");
+                statusPC = Status.Reading;
               }
             } 
             break;
           case Status.Writing:
-            if (serialPort.ReadLine() == "OK\r")
+            if (serialPortPC.ReadLine() == "OK\r")
             {
               data = new byte[bytesToWrite];
-              serialPort.Write(data, 0, data.Length);
-              status = Status.FinishWriting;
+              Random random = new Random();
+              random.NextBytes(data);
+
+              serialPortPC.Write(data, 0, data.Length);
+              statusPC = Status.FinishWriting;
             }
             break;
           case Status.FinishWriting:
-            if (serialPort.ReadLine() == "OK\r")
+            if (serialPortPC.ReadLine() == "OK\r")
             {
-              status = Status.Opened;
+              statusPC = Status.Opened;
             }
             break;
           case Status.Reading:
-            totalBytesToRead = Convert.ToInt32(serialPort.ReadLine());
-            status = Status.FinishReading;
+            totalBytesToRead = Convert.ToInt32(serialPortPC.ReadLine());
+            statusPC = Status.FinishReading;
             break;  
           case Status.FinishReading:
-            data = new byte[serialPort.BytesToRead];
-            serialPort.Read(data, 0, data.Length);
+            data = new byte[serialPortPC.BytesToRead];
+            serialPortPC.Read(data, 0, data.Length);
             bytesRead += data.Length;
             if (bytesRead < totalBytesToRead)
             {
-              status = Status.Opened;
+              statusPC = Status.Opened;
             }
             break;
       }
     }
 
+    private void serialPortEmbedded_DataReceived(object sender, SerialDataReceivedEventArgs e)
+    {
+      switch (statusEmbedded)
+      {
+        case Status.Opened:
+          WriteToLog(serialPortEmbedded.ReadLine());
+          serialPortEmbedded.WriteLine("OK\r");
+          statusEmbedded = Status.Alive;
+          break;
+        case Status.Alive:
+          string []s = serialPortEmbedded.ReadLine().Split(':');
+          if (s[0] == "W")
+          {
+            totalBytesToRead = Convert.ToInt32(s[1]);
+            WriteToLog("Received: " + s[0] + ":" + s[1]);
+            serialPortEmbedded.WriteLine("OK\r");
+            statusEmbedded = Status.Reading;
+          }
+          if (serialPortEmbedded.ReadLine()[0] == 'R')
+          {
+            WriteToLog(serialPortEmbedded.ReadLine());
+            serialPortEmbedded.WriteLine("OK\r");
+            statusEmbedded = Status.Writing;
+          }
+          break;
+        case Status.Reading:
+          data = new byte[serialPortEmbedded.BytesToRead];
+          serialPortEmbedded.Read(data, 0, data.Length);
+          accumulatedData = accumulatedData.Concat(data).ToArray();
+          bytesRead += data.Length;
+          if ((totalBytesToRead - bytesRead) < serialPortEmbedded.ReadBufferSize * 2 && serialPortEmbedded.BytesToRead == 0)
+          {
+            data = new byte[totalBytesToRead - bytesRead];
+            string l = serialPortEmbedded.ReadExisting();
+            statusEmbedded = Status.Opened;
+          }
+          break;
+
+       }
+    }
+
+    private byte []accumulatedData = new byte[0];
+
+    private void WriteToLog(string text)
+    {
+      if (logRichTextBox.InvokeRequired)
+      {
+        logRichTextBox.Invoke((MethodInvoker)(() => logRichTextBox.AppendText(text + "\r")));
+      }
+      else
+      {
+        logRichTextBox.AppendText(text + "\r");
+      }
+    }
+
     private void writeButton_Click(object sender, EventArgs e)
     {
-      if (serialPort.IsOpen)
+      if (serialPortPC.IsOpen)
       {
-        status = Status.Opened;
-        serialPort.WriteLine("AT");
+        statusPC = Status.Opened;
+        serialPortPC.WriteLine("AT");
         commandType = CommandType.Write;
         bytesToWrite = Convert.ToInt32(this.bytesToWriteTextBox.Text);
       }
@@ -153,9 +227,9 @@ namespace VirtualComTest
 
     private void readButton_Click(object sender, EventArgs e)
     {
-      if (serialPort.IsOpen)
+      if (serialPortPC.IsOpen)
       {
-        serialPort.WriteLine("AT");
+        serialPortPC.WriteLine("AT");
         commandType = CommandType.Read;
       }
     }
